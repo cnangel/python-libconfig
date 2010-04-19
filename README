@@ -1,6 +1,6 @@
 python-libconfig
 
-Python bindings to the C library libconfig
+Python bindings to the C++ library libconfig
 
 
 INSTALLATION
