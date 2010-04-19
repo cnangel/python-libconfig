@@ -1,0 +1,8 @@
+#syntax: glob
+ 
+syntax: regexp
+\.bak$
+\.pyc$
+pylibconfig.egg-info
+\.*\.swp$
+\.git\/*

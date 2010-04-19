@@ -1,0 +1,5 @@
+pylibconfig.egg-info
+.hg
+*.bak
+*.swp
+*.pyc
