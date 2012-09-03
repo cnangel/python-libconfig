@@ -162,7 +162,12 @@ public:
 
     void setValue_int ( const char * path, int value )
     {
-        config->lookup ( path ) = value;
+        libconfig::Setting &setting = config->lookup ( path );
+        if (setting.isNumber()) {
+            setting  = value;
+        } else {
+            setting = (value) ? true : false;
+        }
     }
 
     void setValue_long ( const char * path, long value )
