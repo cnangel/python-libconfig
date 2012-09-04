@@ -7,9 +7,9 @@ INSTALLATION
 
 First install libconfig and its development files.
 
-Redhat:     yum install libconfig libconfig-devel -y
-Debian:     apt-get libconfig libconfig-devel
-openSUSE:   zypper install libconfig8 libconfig-devel
+Redhat:     yum install libconfig libconfig-devel python-devel -y
+Debian:     apt-get libconfig libconfig-devel python-devel
+openSUSE:   zypper install libconfig8 libconfig-devel python-devel
             (available in the Packman repository)
 
 On other platforms, you can compile libconfig from source:
