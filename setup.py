@@ -9,7 +9,7 @@ setup(
     version				= "0.0.1",
     author				= "Sergey S. Gogin",
     author_email		= "d-x@bk.ru",
-	maintainer			="cnangel",
+	maintainer			= "cnangel",
 	maintainer_email	= "cnangel@gmail.com",
     keywords			= "libconfig libconfig++ boost python config configuration",
     test_suite			= "tests",

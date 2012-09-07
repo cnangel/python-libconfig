@@ -45,13 +45,13 @@ public:
         if ( config->lookupValue ( path, v_string ) )
             return make_tuple ( v_string.c_str(), true );
 
-        unsigned int v_uint;
-        if ( config->lookupValue ( path, v_uint ) )
-            return make_tuple ( v_uint, true );
-
         int v_int;
         if ( config->lookupValue ( path, v_int ) )
             return make_tuple ( v_int, true );
+
+        unsigned int v_uint;
+        if ( config->lookupValue ( path, v_uint ) )
+            return make_tuple ( v_uint, true );
 
         bool v_bool;
         if ( config->lookupValue ( path, v_bool ) )
