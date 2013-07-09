@@ -8,7 +8,7 @@ Source0: %{name}-%{version}.tar.gz
 URL: http://code.google.com/r/cnangel-python-libconfig/
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-BuildRequires: libconfig libconfig-devel
+BuildRequires: boost-devel python-devel libconfig libconfig-devel
 Requires: libconfig
 
 %description
