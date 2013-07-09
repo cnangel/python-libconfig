@@ -39,5 +39,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/python?.?/site-packages/*.so
 
 %changelog
-* Fri Apr 16 2010 Cnangel <cnangel@gmail.com> 1.0.0-1
+* Fri Apr 16 2010 Cnangel <cnangel@gmail.com> 0.0.1-1
 - build the first spec file
