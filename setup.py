@@ -5,7 +5,7 @@ from os.path import join, basename, splitext
 from glob import glob
 
 include_dirs = ["/usr/local/include", "/opt/local/include"]
-library_dirs = ["/usr/lib", "/usr/lib64", "/usr/local/lib", "/opt/local/lib"]
+library_dirs = ["/usr/lib", "/usr/lib64", "/usr/local/lib", "/usr/local/lib64", "/opt/local/lib"]
 libraries = ["config++"]
 
 # lookup library TODO: is there some API for this?
@@ -24,15 +24,15 @@ assert(len(libraries) > 1)
 setup(
     name='pylibconfig',
     description="libconfig bindings for Python",
-    version="0.1.0",
+    version="0.0.2",
     author="Sergey S. Gogin",
     author_email="d-x@bk.ru",
     maintainer="cnangel",
     maintainer_email="cnangel@gmail.com",
     keywords="libconfig libconfig++ boost python config configuration",
     test_suite="tests",
-    license="gpl",
-    url="",
+    license="bsd",
+	url="https://github.com/cnangel/python-libconfig",
     ext_modules=[
         Extension(
             "pylibconfig",
