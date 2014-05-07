@@ -5,12 +5,13 @@ from os.path import join, basename, splitext
 from glob import glob
 
 include_dirs = ["/usr/local/include", "/opt/local/include"]
-library_dirs = ["/usr/lib", "/usr/lib64", "/usr/local/lib", "/usr/local/lib64", "/opt/local/lib"]
+library_dirs = ["/usr/lib", "/usr/lib64", "/usr/local/lib", "/usr/local/lib64",
+                "/opt/local/lib", "usr/lib/x86_64-linux-gnu"]
 libraries = ["config++"]
 
 # lookup library TODO: is there some API for this?
 for d in library_dirs:
-    libs = glob(join(d, "libboost_python*.so"))
+    libs = glob(join(d, "libboost_python-py27*.so"))
     if libs:
         libname = basename(libs[0])         # basename
         libname = splitext(libname)[0]      # truncate postfix
