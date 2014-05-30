@@ -10,7 +10,9 @@ libraries = ["config++"]
 
 # lookup library TODO: is there some API for this?
 for d in library_dirs:
-    libs = glob(join(d, "libboost_python*.so"))
+    libs = glob(join(d, "libboost_python.so"))
+    if not(libs):
+        libs = glob(join(d, "libboost_python*.so"))
     if libs:
         libname = basename(libs[0])         # basename
         libname = splitext(libname)[0]      # truncate postfix
@@ -32,7 +34,7 @@ setup(
     keywords="libconfig libconfig++ boost python config configuration",
     test_suite="tests",
     license="bsd",
-	url="https://github.com/cnangel/python-libconfig",
+    url="https://github.com/cnangel/python-libconfig",
     ext_modules=[
         Extension(
             "pylibconfig",
