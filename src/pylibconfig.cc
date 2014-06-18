@@ -30,6 +30,9 @@ public:
     void writeFile ( const char * filename )
     {   config->writeFile ( filename );    }
 
+    void readString ( const char * stringdata )
+    {   config->readString ( stringdata ); }
+
     bool getAutoConvert ()
     {   return config->getAutoConvert (); }
 
@@ -206,6 +209,7 @@ BOOST_PYTHON_MODULE ( pylibconfig )
         .def("write", &pyConfig::write )
         .def("readFile", &pyConfig::readFile )
         .def("writeFile", &pyConfig::writeFile )
+        .def("readString", &pyConfig::readString)
         .def("getAutoConvert", &pyConfig::getAutoConvert )
         .def("setAutoConvert", &pyConfig::setAutoConvert )
         .def("exists", &pyConfig::exists )
