@@ -8,7 +8,9 @@ include_dirs = ["/usr/local/include", "/opt/local/include"]
 library_dirs = ["/usr/lib", "/usr/lib64", "/usr/local/lib", "/usr/local/lib64", "/opt/local/lib"]
 libraries = ["config++"]
 
-# lookup library TODO: is there some API for this?
+# Attempt to find libboost_python.so or some variant by searching through the
+# library directories.
+# TODO: is there some API for this?
 for d in library_dirs:
     libs = glob(join(d, "libboost_python.so"))
     if not(libs):
@@ -20,8 +22,11 @@ for d in library_dirs:
         libraries.append(libname)
         break
 
-# check that we really found boost
-assert(len(libraries) > 1)
+# If we were unable to find the shared library go ahead in a default. It might
+# be in an unofficial directory and an environment variable has been set that
+# will point the compiler to it.
+if len(libraries) <= 1:
+    libraries.append('boost_python')
 
 setup(
     name='pylibconfig',
