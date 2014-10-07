@@ -30,8 +30,11 @@ public:
     void writeFile ( const char * filename )
     {   config->writeFile ( filename );    }
 
+#if (LIBCONFIGXX_VER_MAJOR >= 2) || \
+    ((LIBCONFIGXX_VER_MAJOR == 1) && (LIBCONFIGXX_VER_MINOR >= 4))
     void readString ( const char * stringdata )
     {   config->readString ( stringdata ); }
+#endif
 
     bool getAutoConvert ()
     {   return config->getAutoConvert (); }
@@ -209,7 +212,10 @@ BOOST_PYTHON_MODULE ( pylibconfig )
         .def("write", &pyConfig::write )
         .def("readFile", &pyConfig::readFile )
         .def("writeFile", &pyConfig::writeFile )
+#if (LIBCONFIGXX_VER_MAJOR >= 2) || \
+    ((LIBCONFIGXX_VER_MAJOR == 1) && (LIBCONFIGXX_VER_MINOR >= 4))
         .def("readString", &pyConfig::readString)
+#endif
         .def("getAutoConvert", &pyConfig::getAutoConvert )
         .def("setAutoConvert", &pyConfig::setAutoConvert )
         .def("exists", &pyConfig::exists )
