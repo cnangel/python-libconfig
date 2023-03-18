@@ -31,7 +31,7 @@ if len(libraries) <= 1:
 setup(
     name='pylibconfig',
     description="libconfig bindings for Python",
-    version="0.0.2",
+    version="0.0.4",
     author="Sergey S. Gogin",
     author_email="d-x@bk.ru",
     maintainer="cnangel",
