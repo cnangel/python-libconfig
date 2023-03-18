@@ -1,6 +1,6 @@
 Summary: A python interface to libconfig
 Name: python-libconfig
-Version: 0.0.1
+Version: 0.0.2
 Release: 1
 License: bsd
 Group: Development/Libraries
@@ -39,5 +39,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/python?.?/site-packages/*.so
 
 %changelog
+* Sat Mar 18 2023 Cnangel <cnangel@gmail.com> 0.0.2-1
+- fix root path issue.
 * Fri Apr 16 2010 Cnangel <cnangel@gmail.com> 0.0.1-1
 - build the first spec file
