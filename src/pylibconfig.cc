@@ -1,6 +1,5 @@
 #include <boost/python.hpp>
 #include <libconfig.h++>
-#include <iostream>
 #include <string>
 
 using namespace boost::python;
