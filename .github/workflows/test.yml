@@ -1,0 +1,29 @@
+---
+name: test
+
+on:
+  push:
+    branches:
+      - "*"
+    tags-ignore:
+      - "*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: "Python Build & Test"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libconfig++-dev libboost-python-dev python3-dev python3-setuptools build-essential
+      - name: Build
+        run: python3 setup.py build
+      - name: Test
+        run: |
+          BUILD_DIR=$(ls -d build/lib.*-*-* 2>/dev/null | head -1)
+          [ -n "$BUILD_DIR" ] || (echo "Error: build directory not found" && exit 1)
+          PYTHONPATH=$BUILD_DIR python3 -m unittest tests.test -v

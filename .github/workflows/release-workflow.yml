@@ -1,0 +1,357 @@
+---
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  basic-build:
+    name: Basic Build
+    runs-on: ubuntu-latest
+    outputs:
+      our_date: ${{ env.our_date }}
+      git_hash: ${{ env.git_hash }}
+      cc_files_hash_id: ${{ env.cc_files_hash_id }}
+      version_id: ${{ env.version_id }}
+      package_name: ${{ env.package_name }}
+      deb_path: ${{ env.deb_path }}
+      rpm_path: ${{ env.rpm_path }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+      - name: Set Variables
+        run: |
+          version_id=${GITHUB_REF_NAME:1}
+          package_name=${GITHUB_REPOSITORY##*/}
+          sha_short=$(git rev-parse --short "$GITHUB_SHA")
+          cc_hash_id=${{ hashFiles('setup.py', 'src/pylibconfig.cc', 'python-libconfig.spec') }}
+          echo "our_date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_ENV
+          echo "git_hash=$sha_short" >> $GITHUB_ENV
+          echo "version_id=$version_id" >> $GITHUB_ENV
+          echo "package_name=$package_name" >> $GITHUB_ENV
+          echo "cc_files_hash_id=${cc_hash_id:0:10}" >> $GITHUB_ENV
+          echo "deb_path=debian/artifacts" >> $GITHUB_ENV
+          echo "rpm_path=rpmbuild/RPMS" >> $GITHUB_ENV
+      - name: Run Unit Tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libconfig++-dev libboost-python-dev python3-dev python3-setuptools build-essential
+          python3 setup.py build
+          BUILD_DIR=$(ls -d build/lib.*-*-* 2>/dev/null | head -1)
+          PYTHONPATH=$BUILD_DIR python3 -m unittest tests.test -v
+
+  deb-build:
+    name: Create Ubuntu ${{ matrix.distro }} Release
+    runs-on: ${{ matrix.runs-on }}
+    continue-on-error: true
+    needs: [basic-build]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: focal
+            runs-on: ubuntu-22.04
+          - distro: resolute
+            runs-on: ubuntu-24.04
+          - distro: jammy
+            runs-on: ubuntu-22.04
+          - distro: noble
+            runs-on: ubuntu-24.04
+    outputs:
+      deb_packages: ${{ steps.output_info.outputs.deb_packages }}
+    env:
+      version_id: ${{ needs.basic-build.outputs.version_id }}
+      package_name: ${{ needs.basic-build.outputs.package_name }}
+      cc_files_hash_id: ${{ needs.basic-build.outputs.cc_files_hash_id }}
+      deb_path: ${{ needs.basic-build.outputs.deb_path }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Restore DEB Cache
+        id: deb_cache_restore
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ${{ env.deb_path }}/${{ matrix.distro }}
+          key: ${{ runner.os }}-${{ env.package_name }}-${{ env.version_id }}-${{ env.cc_files_hash_id }}-deb-${{ matrix.distro }}
+
+      - name: Restore Pbuilder Base Cache
+        id: pbuilder_cache_restore
+        if: matrix.distro == 'focal' && steps.deb_cache_restore.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: /var/cache/pbuilder/focal-base.tgz
+          key: pbuilder-focal-base-${{ hashFiles('debian/control') }}
+
+      - if: matrix.distro != 'focal' && steps.deb_cache_restore.outputs.cache-hit != 'true'
+        name: Build DEB Package
+        id: deb_build
+        uses: cnangel/build-deb-action@master
+        with:
+          before_build_hook: |
+            dch --maintmaint --newversion ${{ env.version_id }}-1 "version ${{ env.version_id }}"
+            dch --maintmaint --release ""
+          buildpackage_opts: --build=binary
+          is_output_all_files: false
+
+      - if: matrix.distro != 'focal' && steps.deb_cache_restore.outputs.cache-hit != 'true'
+        name: Move DEB to distro subdir
+        run: |
+          sudo chown -R $(id -u):$(id -g) ${{ env.deb_path }}/
+          mkdir -p ${{ env.deb_path }}/${{ matrix.distro }}
+          mv ${{ env.deb_path }}/*.deb ${{ env.deb_path }}/${{ matrix.distro }}/
+          for f in ${{ env.deb_path }}/${{ matrix.distro }}/*.deb; do mv "$f" "${{ env.deb_path }}/${{ matrix.distro }}/${{ matrix.distro }}-$(basename "$f")"; done
+
+      - if: matrix.distro == 'focal' && steps.deb_cache_restore.outputs.cache-hit != 'true'
+        name: Build DEB Package Focal via pbuilder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pbuilder ubuntu-dev-tools devscripts
+          dch --maintmaint --newversion ${{ env.version_id }}-1 "version ${{ env.version_id }}"
+          dch --maintmaint --release ""
+          if [ -f /var/cache/pbuilder/focal-base.tgz ]; then
+            sudo mkdir -p /var/cache/pbuilder
+            sudo cp /var/cache/pbuilder/focal-base.tgz /var/cache/pbuilder/
+          fi
+          pbuilder-dist focal create --mirror http://archive.ubuntu.com/ubuntu || true
+          (cd .. && dpkg-source -b ${{ env.package_name }})
+          mkdir -p ./pbuilder-result
+          pbuilder-dist focal build --buildresult ./pbuilder-result ../*.dsc
+          sudo chown -R $(id -u):$(id -g) ./pbuilder-result
+          mkdir -p ${{ env.deb_path }}/focal
+          cp ./pbuilder-result/*.deb ${{ env.deb_path }}/focal/
+          for f in ${{ env.deb_path }}/focal/*.deb; do mv "$f" "${{ env.deb_path }}/focal/focal-$(basename "$f")"; done
+
+      - if: steps.deb_cache_restore.outputs.cache-hit != 'true'
+        name: Save DEB Cache
+        id: deb_cache_save
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            ${{ env.deb_path }}/${{ matrix.distro }}
+          key: ${{ steps.deb_cache_restore.outputs.cache-primary-key }}
+
+      - if: matrix.distro == 'focal' && steps.deb_cache_restore.outputs.cache-hit != 'true' && steps.pbuilder_cache_restore.outputs.cache-hit != 'true'
+        name: Check Pbuilder Base Cache Exists
+        id: pbuilder_check
+        run: |
+          if [ -f /var/cache/pbuilder/focal-base.tgz ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          fi
+
+      - if: matrix.distro == 'focal' && steps.deb_cache_restore.outputs.cache-hit != 'true' && steps.pbuilder_check.outputs.available == 'true'
+        name: Save Pbuilder Base Cache
+        uses: actions/cache/save@v5
+        with:
+          path: /var/cache/pbuilder/focal-base.tgz
+          key: ${{ steps.pbuilder_cache_restore.outputs.cache-primary-key }}
+
+      - name: Set Output Info
+        id: output_info
+        run: |
+          sudo apt-get install -y jq jo
+          echo "deb_packages=$(find ${{ env.deb_path }}/${{ matrix.distro }} -name '*.deb' 2>/dev/null | jo -a | jq -r 'join(",")')" >> $GITHUB_OUTPUT
+
+  rpm-build:
+    name: Create ${{ matrix.distro }} Release
+    runs-on: ${{ matrix.runs-on || 'ubuntu-latest' }}
+    continue-on-error: true
+    needs: [basic-build]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: el7
+            docker_image: cnangel/el7
+            extra_build_deps: libconfig-devel boost-devel python3-devel python3-setuptools gcc-c++
+          - distro: el8
+            docker_image: cnangel/el8
+            dnf_opts: --enablerepo=powertools
+            extra_build_deps: libconfig-devel boost-devel boost-python3-devel python3-devel python3-setuptools gcc-c++
+          - distro: el9
+            docker_image: cnangel/el9
+            dnf_opts: --enablerepo=crb
+            extra_build_deps: libconfig-devel boost-devel python3-devel python3-setuptools gcc-c++
+          - distro: el10-amd64
+            docker_image: quay.io/centos/centos:stream10-minimal
+            dnf_opts: --enablerepo=crb
+            additional_repos: '["https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm"]'
+            extra_build_deps: rpm-build libconfig-devel boost-devel python3-devel python3-setuptools gcc-c++
+          - distro: el10-arm64
+            runs-on: ubuntu-24.04-arm
+            docker_image: quay.io/centos/centos:stream10-minimal
+            dnf_opts: --enablerepo=crb
+            additional_repos: '["https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm"]'
+            extra_build_deps: rpm-build libconfig-devel boost-devel python3-devel python3-setuptools gcc-c++
+          - distro: fc38
+            docker_image: cnangel/fc38
+            extra_build_deps: libconfig-devel boost-devel python3-devel python3-setuptools gcc-c++
+          - distro: fc44
+            docker_image: fedora:44
+            extra_build_deps: rpm-build rpmdevtools dnf-plugins-core gcc-c++ libconfig-devel boost-devel python3-devel python3-setuptools
+
+    outputs:
+      rpm_packages: ${{ steps.output_info.outputs.rpm_packages }}
+    env:
+      version_id: ${{ needs.basic-build.outputs.version_id }}
+      package_name: ${{ needs.basic-build.outputs.package_name }}
+      cc_files_hash_id: ${{ needs.basic-build.outputs.cc_files_hash_id }}
+      rpm_path: ${{ needs.basic-build.outputs.rpm_path }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Before Build Hook
+        run: |
+          sed -i 's/^Version:.*/Version:        ${{ env.version_id }}/' "${{ env.package_name }}.spec"
+
+      - name: Restore RPM Cache
+        id: rpm_cache_restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: ${{ runner.os }}-${{ env.package_name }}-${{ env.version_id }}-${{ env.cc_files_hash_id }}-rpm-${{ matrix.distro }}
+
+      - if: steps.rpm_cache_restore.outputs.cache-hit != 'true'
+        name: Build RPM Package
+        id: rpm_build
+        uses: cnangel/build-rpm-action@master
+        with:
+          docker_image: ${{ matrix.docker_image }}
+          dnf_opts: ${{ matrix.dnf_opts }}
+          additional_repos: ${{ matrix.additional_repos }}
+          extra_build_deps: ${{ matrix.extra_build_deps }}
+
+      - if: steps.rpm_cache_restore.outputs.cache-hit != 'true'
+        name: Save RPM Cache
+        id: rpm_cache_save
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            ${{ env.rpm_path }}
+          key: ${{ steps.rpm_cache_restore.outputs.cache-primary-key }}
+
+      - name: Set Output Info
+        id: output_info
+        run: |
+          sudo apt-get install -y jq jo
+          echo "rpm_packages=$(find ${{ env.rpm_path }} -name '*.rpm' 2>/dev/null | jo -a | jq -r 'join(",")')" >> $GITHUB_OUTPUT
+
+  publish-release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: [deb-build, rpm-build, basic-build]
+    env:
+      version_id: ${{ needs.basic-build.outputs.version_id }}
+      deb_path: ${{ needs.basic-build.outputs.deb_path }}
+      rpm_path: ${{ needs.basic-build.outputs.rpm_path }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Restore DEB Cache Focal
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ${{ env.deb_path }}/focal
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-deb-focal
+          fail-on-cache-miss: true
+      - name: Restore DEB Cache Resolute
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ${{ env.deb_path }}/resolute
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-deb-resolute
+          fail-on-cache-miss: true
+      - name: Restore DEB Cache Jammy
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ${{ env.deb_path }}/jammy
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-deb-jammy
+          fail-on-cache-miss: true
+      - name: Restore DEB Cache Noble
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ${{ env.deb_path }}/noble
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-deb-noble
+          fail-on-cache-miss: true
+
+      - name: Restore RPM Cache el7
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-rpm-el7
+          fail-on-cache-miss: true
+      - name: Restore RPM Cache el8
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-rpm-el8
+          fail-on-cache-miss: true
+      - name: Restore RPM Cache el9
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-rpm-el9
+          fail-on-cache-miss: true
+      - name: Restore RPM Cache el10-amd64
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-rpm-el10-amd64
+          fail-on-cache-miss: true
+      - name: Restore RPM Cache el10-arm64
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-rpm-el10-arm64
+          fail-on-cache-miss: true
+      - name: Restore RPM Cache fc38
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-rpm-fc38
+          fail-on-cache-miss: true
+      - name: Restore RPM Cache fc44
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.rpm_path }}
+          key: Linux-${{ needs.basic-build.outputs.package_name }}-${{ env.version_id }}-${{ needs.basic-build.outputs.cc_files_hash_id }}-rpm-fc44
+          fail-on-cache-miss: true
+
+      - name: Collect Release Assets
+        id: collect_assets
+        run: |
+          ASSETS=""
+          for d in focal resolute jammy noble; do
+            for f in ${{ env.deb_path }}/$d/*.deb; do
+              [ -f "$f" ] && ASSETS="$ASSETS"$'\n'"$f"
+            done
+          done
+          for f in ${{ env.rpm_path }}/**/*.rpm; do
+            [ -f "$f" ] && ASSETS="$ASSETS"$'\n'"$f"
+          done
+          echo "ASSETS<<EOF" >> $GITHUB_OUTPUT
+          echo "$ASSETS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Release ${{ github.ref_name }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref_name }}
+          body_path: ChangeLog.md
+          files: ${{ steps.collect_assets.outputs.ASSETS }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
