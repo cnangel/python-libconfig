@@ -3,3 +3,9 @@ pylibconfig.egg-info
 *.bak
 *.swp
 *.pyc
+build/
+dist/
+*.so
+*.conf
+*.deb
+build_*/
