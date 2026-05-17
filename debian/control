@@ -1,0 +1,25 @@
+Source: python-libconfig
+Section: python
+Priority: optional
+Maintainer: Cnangel <cnangel@gmail.com>
+Build-Depends: debhelper (>= 9),
+               libconfig++-dev,
+               python3-dev,
+               python3-setuptools,
+               libboost-python-dev,
+               g++
+Standards-Version: 4.6.0
+Homepage: https://github.com/cnangel/python-libconfig
+
+Package: python3-libconfig
+Architecture: any
+Depends: ${python3:Depends}, ${misc:Depends}, ${shlibs:Depends}
+Description: Python bindings to the C++ library libconfig
+ python-libconfig provides Python bindings for the libconfig C++
+ configuration file library. Supports libconfig 1.1.x ~ 1.8.x.
+ .
+ Features:
+  - Config and Setting object bindings via Boost.Python
+  - Type-safe lookup methods (lookupInt, lookupString, etc.)
+  - Format, options, precision, and tab width control
+  - Full Setting API (navigation, type checks, source info)

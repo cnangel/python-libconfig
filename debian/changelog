@@ -1,0 +1,9 @@
+python-libconfig (0.2.0-1) unstable; urgency=medium
+
+  * Upgrade to support libconfig 1.1.x ~ 1.8.x
+  * Export Setting class with full API
+  * Add type-safe lookup methods
+  * Add options/format/precision/tab_width support
+  * Fix bugs in children(), setValue dispatch, add* empty path
+
+ -- Cnangel <cnangel@gmail.com>  Thu, 15 May 2026 00:00:00 +0000

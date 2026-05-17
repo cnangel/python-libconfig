@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	python3 setup.py build
+
+override_dh_auto_test:
+	BUILD_DIR=$$(ls -d build/lib.*-*-* 2>/dev/null | head -1); \
+	[ -n "$$BUILD_DIR" ] || (echo "Error: build directory not found" && exit 1); \
+	PYTHONPATH=$$BUILD_DIR python3 -m unittest tests.test -v
+
+override_dh_auto_install:
+	python3 setup.py install --root=$(CURDIR)/debian/python3-libconfig --install-layout=deb
+
+# Skip dh_python3 on non-Debian systems
+override_dh_python3:
+	@echo "Skipping dh_python3 (not on Debian)"
