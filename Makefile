@@ -14,8 +14,13 @@ sdist:
 wheel: build
 	python3 setup.py bdist_wheel
 
-rpm: sdist
-	cp dist/pylibconfig-*.tar.gz ~/.rpmbuild/SOURCES/pylibconfig-$(shell python3 setup.py --version).tar.gz
+SRCNAME  := python3-libconfig
+VERSION  := $(shell python3 setup.py --version 2>/dev/null)
+
+rpm:
+	mkdir -p ~/.rpmbuild/SOURCES
+	git archive HEAD --format=tar.gz --prefix=$(SRCNAME)-$(VERSION)/ \
+		-o ~/.rpmbuild/SOURCES/$(SRCNAME)-$(VERSION).tar.gz
 	rpmbuild -ba python3-libconfig.spec
 
 clean:

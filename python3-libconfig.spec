@@ -1,10 +1,12 @@
+%{!?srcname: %define srcname python3-libconfig}
+
 Summary: A Python interface to libconfig
 Name: python3-libconfig
 Version: 0.2.1
 Release: 1%{?dist}
 License: bsd
 Group: Development/Libraries
-Source0: pylibconfig-%{version}.tar.gz
+Source0: %{srcname}-%{version}.tar.gz
 URL: https://github.com/cnangel/python-libconfig
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -17,7 +19,7 @@ Supports reading, writing, and manipulating configuration files
 via the libconfig C++ API through Boost.Python.
 
 %prep
-%setup -q -n pylibconfig-%{version}
+%setup -q -n %{srcname}-%{version}
 
 %build
 export libdirname=%{_lib}
