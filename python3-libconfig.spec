@@ -1,10 +1,10 @@
 Summary: A Python interface to libconfig
-Name: python-libconfig
+Name: python3-libconfig
 Version: 0.2.1
 Release: 1%{?dist}
 License: bsd
 Group: Development/Libraries
-Source0: %{name}-%{version}.tar.gz
+Source0: pylibconfig-%{version}.tar.gz
 URL: https://github.com/cnangel/python-libconfig
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -17,7 +17,7 @@ Supports reading, writing, and manipulating configuration files
 via the libconfig C++ API through Boost.Python.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n pylibconfig-%{version}
 
 %build
 export libdirname=%{_lib}
@@ -50,5 +50,13 @@ rm -rf $RPM_BUILD_ROOT
 - Fix bugs: children() shadowed declaration, setValue type dispatch, add* empty path
 - Use setValue with Python type introspection dispatching
 
+* Thu Mar 30 2023 Cnangel <cnangel@gmail.com> 0.0.5-1
+- add getType function
+* Sat Mar 18 2023 Cnangel <cnangel@gmail.com> 0.0.4-1
+- fix root path issue.
+* Mon Nov 04 2019 Cnangel <cnangel@gmail.com> 0.0.3-1
+- update for support python3
+* Mon Apr 14 2014 Cnangel <cnangel@gmail.com> 0.0.2-1
+- modify some deps method
 * Fri Apr 16 2010 Cnangel <cnangel@gmail.com> 0.0.1-1
 - Initial build

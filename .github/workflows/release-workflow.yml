@@ -26,7 +26,7 @@ jobs:
           version_id=${GITHUB_REF_NAME:1}
           package_name=${GITHUB_REPOSITORY##*/}
           sha_short=$(git rev-parse --short "$GITHUB_SHA")
-          cc_hash_id=${{ hashFiles('setup.py', 'src/pylibconfig.cc', 'python-libconfig.spec') }}
+          cc_hash_id=${{ hashFiles('setup.py', 'src/pylibconfig.cc', 'python3-libconfig.spec') }}
           echo "our_date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_ENV
           echo "git_hash=$sha_short" >> $GITHUB_ENV
           echo "version_id=$version_id" >> $GITHUB_ENV
@@ -208,7 +208,7 @@ jobs:
 
       - name: Before Build Hook
         run: |
-          sed -i 's/^Version:.*/Version:        ${{ env.version_id }}/' "${{ env.package_name }}.spec"
+          sed -i 's/^Version:.*/Version:        ${{ env.version_id }}/' "python3-libconfig.spec"
 
       - name: Restore RPM Cache
         id: rpm_cache_restore

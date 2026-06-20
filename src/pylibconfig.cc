@@ -318,6 +318,21 @@ public:
         return config->lookupValue(path, v) ? v : std::string(default_);
     }
 
+    // ========== readList — backward-compat: returns list of (value, found) tuples ==========
+
+    list readList(const char *path)
+    {
+        list result;
+        try {
+            Setting &s = config->lookup(path);
+            int length = s.getLength();
+            for (int i = 0; i < length; i++)
+                result.append(value(s[i].getPath().c_str()));
+        }
+        catch (SettingNotFoundException &) {}
+        return result;
+    }
+
     // ========== children ==========
 
     list children_root()
@@ -590,6 +605,7 @@ BOOST_PYTHON_MODULE(pylibconfig)
         .def("lookupString",  &pyConfig::lookupString,
              (arg("path"), arg("default_") = ""))
         .def("value",         &pyConfig::value)
+        .def("readList",      &pyConfig::readList)
         .def("children",      &pyConfig::children)
         .def("children",      &pyConfig::children_root)
         .def("remove",        &pyConfig::remove)

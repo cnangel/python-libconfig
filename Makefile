@@ -15,8 +15,8 @@ wheel: build
 	python3 setup.py bdist_wheel
 
 rpm: sdist
-	cp dist/pylibconfig-*.tar.gz ~/.rpmbuild/SOURCES/python-libconfig-$(shell python3 setup.py --version).tar.gz
-	rpmbuild -ba python-libconfig.spec
+	cp dist/pylibconfig-*.tar.gz ~/.rpmbuild/SOURCES/pylibconfig-$(shell python3 setup.py --version).tar.gz
+	rpmbuild -ba python3-libconfig.spec
 
 clean:
 	rm -rf build dist pylibconfig.egg-info *.deb
